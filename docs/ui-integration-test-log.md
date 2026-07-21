@@ -39,7 +39,17 @@ Method: same headless-Chrome/CDP click-through. Since exercising this screen nor
 
 ## Screen 3 — Entries / History
 
-_pending_
+Method: headless-Chrome/CDP click-through against seeded entries (open + completed, clock/ai sources, spanning today/yesterday).
+
+- ✅ Entries render grouped by day, most-recent day first, with the design's "TODAY · TUE 21 JUL" / "YESTERDAY · MON 20 JUL" headers
+- ✅ Source-tag icon (⏱/✨/✎) shown per row next to the name, legend at the top matches
+- ✅ Open (still-clocked-in) entries show "live" instead of an hours total, no misleading number
+- ✅ Completed entries show an "Hh MMm" duration (e.g. "4h 58m") derived via the same `computeHoursWorked` used for storage — not a separate/divergent calculation
+- ✅ ⋯ overflow opens an Edit/Delete choice modal (design: "History ⋯ opens edit/delete"); Edit opens the existing field-editing modal, saves correctly, and appends an audit-log row with before/after — verified via `BT.state.get().auditLog.length`, not just visually
+- ✅ Delete opens the existing confirm-with-warning modal, removes the entry, and appends its own audit-log row
+- ✅ Manual add-entry form (kept per docs/ui-integration-decisions.md D5) opens via the "+ Add an entry by hand" disclosure and is unaffected — same `renderManualForm()`/`#manualFormSection` as before
+- ✅ History tab (audit log + chat log, kept per D4) still renders correctly under the shared tokens — table, banners, and empty-state ("No conversations yet.") all display properly, no console errors
+- ✅ No console errors across the full edit/delete/day-grouping cycle
 
 ## Screen 4 — Settings
 

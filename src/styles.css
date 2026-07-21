@@ -573,6 +573,13 @@ a:hover { color: var(--bt-caramel-deep); }
 .bt-entry-row__top { display: flex; align-items: center; gap: 8px; }
 .bt-entry-row__name { font-family: var(--bt-font-display); font-weight: 700; font-size: 1.05rem; color: var(--bt-charcoal); }
 .bt-entry-row__meta { font-size: .85rem; font-weight: 600; color: var(--bt-muted); margin-top: 2px; }
+.bt-entry-row__source {
+  width: 20px; height: 20px; border-radius: 7px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center; font-size: .65rem;
+}
+.bt-entry-row__source--clock { background: var(--bt-source-clock-bg); color: var(--bt-source-clock-fg); }
+.bt-entry-row__source--ai { background: var(--bt-source-ai-bg); color: var(--bt-source-ai-fg); }
+.bt-entry-row__source--manual { background: var(--bt-source-manual-bg); color: var(--bt-source-manual-fg); }
 .bt-entry-row__right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .bt-entry-row__hours { font-family: var(--bt-font-display); font-weight: 800; font-size: 1.1rem; color: var(--bt-charcoal); }
 .bt-entry-row__hours--live { color: var(--bt-success-deep); }

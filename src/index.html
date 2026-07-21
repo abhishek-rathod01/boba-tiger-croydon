@@ -68,22 +68,24 @@
       <div class="bt-card" id="exportSection"></div>
     </section>
 
-    <!-- ENTRIES: restyled in the "Screen 3 — Entries/History" pass, not
-         this one (see docs/ui-integration-plan.md) — kept as-is for now so
-         this commit stays scoped to the Dashboard. -->
+    <!-- ENTRIES / HISTORY (source-tagged, day-grouped list; see
+         docs/ui-integration-decisions.md D4/D5 for the manual-form &
+         audit-log placement decisions) -->
     <section class="bt-panel" data-panel="entries" data-active="false">
-      <h2 class="bt-section-title">Add an entry</h2>
-      <div class="bt-card" id="manualFormSection"></div>
+      <h2 class="bt-section-title">Recent hours</h2>
 
-      <h2 class="bt-section-title">All entries</h2>
-      <div class="bt-table-wrap">
-        <table class="bt-table" id="entriesTable">
-          <thead>
-            <tr><th>Name</th><th>Date</th><th>In</th><th>Out</th><th>Break</th><th>Hours</th><th>Source</th><th>Note</th><th></th></tr>
-          </thead>
-          <tbody id="entriesTableBody"></tbody>
-        </table>
+      <div class="bt-entries-legend" id="entriesLegend">
+        <span class="bt-source-tag bt-source-tag--clock"><span class="bt-source-tag__icon">⏱</span> Clock</span>
+        <span class="bt-source-tag bt-source-tag--ai"><span class="bt-source-tag__icon">✨</span> AI</span>
+        <span class="bt-source-tag bt-source-tag--manual"><span class="bt-source-tag__icon">✎</span> Manual</span>
       </div>
+
+      <details class="bt-card bt-manualform" id="manualFormDetails">
+        <summary class="bt-manualform__summary">+ Add an entry by hand</summary>
+        <div id="manualFormSection"></div>
+      </details>
+
+      <div id="entriesGroups"></div>
     </section>
 
     <!-- HISTORY: audit log + chat log (no equivalent design screen —

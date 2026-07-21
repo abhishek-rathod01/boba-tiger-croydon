@@ -804,37 +804,86 @@
   }
 
   // ---- Entries table (list / edit / delete) ---------------------------
+  var WEEKDAY_SHORT = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  var MONTH_SHORT = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  function dayGroupLabel(iso) {
+    var parts = iso.split('-').map(Number);
+    var d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    var suffix = WEEKDAY_SHORT[d.getUTCDay()] + ' ' + (parts[2] < 10 ? '0' + parts[2] : parts[2]) + ' ' + MONTH_SHORT[parts[1] - 1];
+    if (iso === BT.time.todayISO()) return 'TODAY · ' + suffix;
+    if (iso === BT.time.yesterdayISO()) return 'YESTERDAY · ' + suffix;
+    return suffix;
+  }
+  // "Hh MMm" duration for display, derived the same way the live timers are
+  // (via minutesWorked) rather than converting the stored decimal hours —
+  // purely a display format, never re-used for validation or storage.
+  function entryDurationLabel(e) {
+    var r = BT.time.computeHoursWorked(e.clockIn, e.clockOut, e.breakMinutes);
+    return r ? BT.time.formatElapsed(r.minutesWorked) : (e.hoursWorked != null ? e.hoursWorked.toFixed(2) + 'h' : '?');
+  }
+  var SOURCE_ICON = { clock: '⏱', ai: '✨', manual: '✎' };
+
   function renderEntries() {
     renderManualForm();
-    var body = $('#entriesTableBody');
+    var host = $('#entriesGroups');
+    if (!host) return; // defensive: guards against a render tick racing an unload/navigation
     var root = BT.state.get();
     var rows = root.entries.slice().sort(function (a, b) { return (b.date + b.clockIn).localeCompare(a.date + a.clockIn); });
     if (rows.length === 0) {
-      body.innerHTML = '<tr><td colspan="9" class="bt-muted">No entries yet.</td></tr>';
+      host.innerHTML = '<p class="bt-entries-empty">No entries yet.</p>';
       return;
     }
-    body.innerHTML = rows.map(function (e) {
-      var staff = findStaff(e.staffId);
-      var isOpen = e.status === 'open';
-      return '<tr>' +
-        '<td>' + escapeHtml(staff ? staff.name : 'Unknown') + '</td>' +
-        '<td>' + escapeHtml(BT.time.formatDateDMY(e.date)) + '</td>' +
-        '<td>' + escapeHtml(e.clockIn) + '</td>' +
-        '<td>' + (isOpen ? '<span class="bt-muted">Still working</span>' : escapeHtml(e.clockOut)) + '</td>' +
-        '<td>' + (isOpen ? '—' : escapeHtml(e.breakMinutes) + ' min') + '</td>' +
-        '<td>' + (isOpen ? '—' : e.hoursWorked.toFixed(2)) + '</td>' +
-        '<td>' + escapeHtml(e.source) + '</td>' +
-        '<td>' + escapeHtml(e.note || '') + '</td>' +
-        '<td class="bt-row">' +
-        '<button type="button" class="bt-btn bt-btn--ghost bt-entry-edit" data-id="' + e.id + '">Edit</button>' +
-        '<button type="button" class="bt-btn bt-btn--ghost bt-entry-delete" data-id="' + e.id + '">Delete</button>' +
-        '</td></tr>';
-    }).join('');
-    $all('.bt-entry-edit', body).forEach(function (btn) {
-      btn.addEventListener('click', function () { openEditEntryModal(btn.getAttribute('data-id')); });
+    var dateOrder = [];
+    var byDate = {};
+    rows.forEach(function (e) {
+      if (!byDate[e.date]) { byDate[e.date] = []; dateOrder.push(e.date); }
+      byDate[e.date].push(e);
     });
-    $all('.bt-entry-delete', body).forEach(function (btn) {
-      btn.addEventListener('click', function () { confirmDeleteEntry(btn.getAttribute('data-id')); });
+    host.innerHTML = dateOrder.map(function (dateISO) {
+      var dayRows = byDate[dateISO].slice().sort(function (a, b) { return a.clockIn.localeCompare(b.clockIn); });
+      var rowsHtml = dayRows.map(function (e) {
+        var staff = findStaff(e.staffId);
+        var isOpen = e.status === 'open';
+        var metaText = escapeHtml(e.clockIn) + ' → ' + (isOpen ? 'still in' : escapeHtml(e.clockOut)) +
+          (e.breakMinutes ? ' · ' + e.breakMinutes + 'm break' : ' · no break');
+        var hoursHtml = isOpen
+          ? '<div class="bt-entry-row__hours bt-entry-row__hours--live">live</div>'
+          : '<div class="bt-entry-row__hours">' + escapeHtml(entryDurationLabel(e)) + '</div>';
+        return '<div class="bt-entry-row">' +
+          '<div class="bt-entry-row__avatar" style="' + avatarStyle(e.staffId) + '">' + escapeHtml(initials(staff ? staff.name : '?')) + '</div>' +
+          '<div class="bt-entry-row__body">' +
+          '<div class="bt-entry-row__top"><span class="bt-entry-row__name">' + escapeHtml(staff ? staff.name : 'Unknown') + '</span>' +
+          '<span class="bt-entry-row__source bt-entry-row__source--' + escapeHtml(e.source) + '" title="' + escapeHtml(e.source) + '">' + (SOURCE_ICON[e.source] || '⏱') + '</span></div>' +
+          '<div class="bt-entry-row__meta">' + metaText + (e.note ? ' · ' + escapeHtml(e.note) : '') + '</div>' +
+          '</div>' +
+          '<div class="bt-entry-row__right">' + hoursHtml +
+          '<button type="button" class="bt-entry-row__overflow" data-id="' + e.id + '" aria-label="Entry options">⋯</button>' +
+          '</div></div>';
+      }).join('');
+      return '<div class="bt-entries-daygroup"><div class="bt-entries-daygroup__header">' + dayGroupLabel(dateISO) + '</div>' +
+        '<div class="bt-entries-daygroup__rows">' + rowsHtml + '</div></div>';
+    }).join('');
+
+    $all('.bt-entry-row__overflow', host).forEach(function (btn) {
+      btn.addEventListener('click', function () { openEntryActionsModal(btn.getAttribute('data-id')); });
+    });
+  }
+
+  // ⋯ overflow: design says "opens edit / delete for that entry" — a small
+  // choice modal via the same custom showModal used everywhere else, rather
+  // than two separate always-visible buttons per row.
+  function openEntryActionsModal(entryId) {
+    var root = BT.state.get();
+    var entry = root.entries.find(function (e) { return e.id === entryId; });
+    if (!entry) return;
+    var staff = findStaff(entry.staffId);
+    showModal({
+      title: (staff ? staff.name : 'Entry') + ' — ' + BT.time.formatDateDMY(entry.date),
+      buttons: [
+        { label: 'Cancel', variant: 'ghost' },
+        { label: 'Edit', variant: 'secondary', onClick: function () { openEditEntryModal(entryId); } },
+        { label: 'Delete', variant: 'danger', onClick: function () { confirmDeleteEntry(entryId); } }
+      ]
     });
   }
 
