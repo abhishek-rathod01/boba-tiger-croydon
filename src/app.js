@@ -1143,7 +1143,13 @@
       appendChatMessage('assistant', "I couldn't find hours to log in that — try including a name and times, e.g. \"Priya 9 to 5\".");
       return;
     }
-    result.data.entries.forEach(function (rawEntry) { handleFreshEntry(rawEntry); });
+    result.data.entries.forEach(function (rawEntry) {
+      // Carried through (via Object.assign spreads in the clarify chain) so
+      // the AI Review Card can show the original quoted text — display only,
+      // never read back into any validation/save logic.
+      rawEntry.rawText = text;
+      handleFreshEntry(rawEntry);
+    });
   }
 
   async function handleQuestion(questionText, answerContext) {
@@ -1226,7 +1232,8 @@
     }
     renderReviewCard({
       staffId: staffId, date: date, clockIn: entryDraft.clockIn, clockOut: entryDraft.clockOut,
-      breakMinutes: entryDraft.breakMinutes || 0, note: entryDraft.note || '', hoursWorked: validation.hoursWorked
+      breakMinutes: entryDraft.breakMinutes || 0, note: entryDraft.note || '', hoursWorked: validation.hoursWorked,
+      rawText: entryDraft.rawText || ''
     });
   }
 
@@ -1282,21 +1289,27 @@
     var el = document.createElement('div');
     el.className = 'bt-reviewcard';
     el.setAttribute('data-card-id', cardId);
-    var staff = findStaff(draft.staffId);
     el.innerHTML =
-      '<p><strong>I understood:</strong> ' + escapeHtml(staff ? staff.name : '?') + ', ' + escapeHtml(BT.time.formatDateDMY(draft.date)) +
-      ', ' + escapeHtml(draft.clockIn) + '–' + escapeHtml(draft.clockOut) +
-      (draft.breakMinutes ? ', ' + draft.breakMinutes + ' min break' : '') + ' = <span class="rc-hours">' + draft.hoursWorked.toFixed(2) + '</span> hrs.</p>' +
-      '<div class="bt-reviewcard__grid">' +
-      '<div class="bt-field"><label>Staff</label><select class="rc-staff">' + options + '</select></div>' +
-      '<div class="bt-field"><label>Date</label><input type="date" class="rc-date" value="' + draft.date + '"></div>' +
-      '<div class="bt-field"><label>Clock in</label><input type="time" class="rc-in" value="' + draft.clockIn + '"></div>' +
-      '<div class="bt-field"><label>Clock out</label><input type="time" class="rc-out" value="' + draft.clockOut + '"></div>' +
-      '<div class="bt-field"><label>Break (min)</label><input type="number" class="rc-break" min="0" value="' + (draft.breakMinutes || 0) + '"></div>' +
+      '<div class="bt-reviewcard__header">' +
+      '<div class="bt-reviewcard__badge" aria-hidden="true">🐯</div>' +
+      '<div class="bt-reviewcard__title">Here\'s what I understood</div>' +
+      '<div class="bt-reviewcard__subcopy">Tap anything to fix it. Nothing\'s saved until you tap Looks good.</div>' +
       '</div>' +
+      (draft.rawText ? '<div class="bt-reviewcard__quote">"' + escapeHtml(draft.rawText) + '"</div>' : '') +
+      '<div class="bt-reviewcard__grid">' +
+      '<div class="bt-field"><label>Who</label><select class="rc-staff">' + options + '</select></div>' +
+      '<div class="bt-field"><label>Date</label><input type="date" class="rc-date" value="' + draft.date + '"></div>' +
+      '<div class="bt-field"><label>Clocked in</label><input type="time" class="rc-in" value="' + draft.clockIn + '"></div>' +
+      '<div class="bt-field"><label>Clocked out</label><input type="time" class="rc-out" value="' + draft.clockOut + '"></div>' +
+      '<div class="bt-field"><label>Break (min)</label><input type="number" class="rc-break" min="0" value="' + (draft.breakMinutes || 0) + '"></div>' +
       '<div class="bt-field"><label>Note</label><input type="text" class="rc-note" value="' + escapeHtml(draft.note || '') + '"></div>' +
+      '</div>' +
+      '<div class="bt-reviewcard__total">' +
+      '<span class="bt-reviewcard__total-label">That\'s a total of</span>' +
+      '<span class="bt-reviewcard__total-value"><span class="rc-hours">' + draft.hoursWorked.toFixed(2) + '</span>h</span>' +
+      '</div>' +
       '<div class="bt-reviewcard__actions">' +
-      '<button type="button" class="bt-btn bt-btn--success rc-confirm">Confirm</button>' +
+      '<button type="button" class="bt-btn bt-btn--success rc-confirm">Looks good — save it ✓</button>' +
       '<button type="button" class="bt-btn bt-btn--ghost rc-discard">Discard</button>' +
       '</div>';
     host.appendChild(el);

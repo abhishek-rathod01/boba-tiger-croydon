@@ -26,7 +26,16 @@ Method: served `src/` via a local static HTTP server, driven with a headless Chr
 
 ## Screen 2 — AI Review Card
 
-_pending_
+Method: same headless-Chrome/CDP click-through. Since exercising this screen normally requires a live Groq response and no key is available (see plan), `window.fetch` was mocked in the page to return a canned Groq-shaped JSON response — this exercises the real `ai.js` → `app.js` code path (classify/extract parsing, name resolution, validation, review-card render, confirm/discard, audit log) with zero real network calls and no credential involved. This does **not** substitute for testing the model's own NL-parsing quality (§9 items 7-9), which remains NOT RUN.
+
+- ✅ Review card renders on a successful "entry" classification: header (badge/title/subcopy), quoted original text, Who/Date/Clocked in/Clocked out/Break/Note rows, total panel, actions — matches design layout (see docs/ui-integration-decisions.md D3 for the always-editable-fields decision)
+- ✅ Editing a field (clock-out time) live-recomputes the displayed total (8.50h after changing 17:00→18:00), same as before the restyle
+- ✅ Confirm ("Looks good — save it ✓") saves the entry (`source: 'ai'`), appends an audit log row, and removes the card — verified via `BT.state.get().entries.length` / `.auditLog.length`, not just visually
+- ✅ Discard removes the card without saving (`entries.length` stays 0) and posts "Discarded — nothing saved." to the chat log
+- ✅ Ambiguous-name clarify flow ("Did you mean X or Y?") still triggers correctly when two staff names are close matches — found incidentally when a test fixture had a duplicate name, confirms `names.js` fuzzy-matching is wired through the new UI unchanged
+- ✅ No console errors during the classify → review → confirm/discard cycle
+- ✅ Dark-mode palette checked (post-discard state; card itself confirmed in light mode — same CSS variables/classes drive both, no per-theme markup divergence)
+- ⏭️ NOT RUN: real Groq NL-parsing accuracy, unknown-name "add new staff?" prompt end-to-end with a real model, Q&A answer accuracy — all require a live key, which this session must not touch. The deterministic JS this screen depends on (`validateEntryFields`, `matchStaffName`, `computeHoursWorked`) is unmodified and was exercised above via the mocked path.
 
 ## Screen 3 — Entries / History
 
