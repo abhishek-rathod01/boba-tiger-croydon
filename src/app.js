@@ -185,6 +185,18 @@
     $all('.bt-tab').forEach(function (btn) {
       btn.addEventListener('click', function () { activateTab(btn.getAttribute('data-tab')); });
     });
+    var gear = $('#dashboardSettingsGear');
+    if (gear) gear.addEventListener('click', function () { activateTab('settings'); });
+  }
+
+  // ---- Dashboard greeting ("Hey team 👋" + today's date) ----------------
+  var WEEKDAY_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function renderGreeting() {
+    var dateEl = $('#dashboardGreetingDate');
+    if (!dateEl) return;
+    var p = BT.time.londonParts(new Date());
+    dateEl.textContent = WEEKDAY_FULL[p.weekday] + ' ' + p.day + ' ' + MONTH_FULL[p.month - 1];
   }
 
   // ---- Staff helpers --------------------------------------------------
@@ -199,6 +211,24 @@
   function openEntryForStaff(staffId) {
     var root = BT.state.get();
     return root.entries.find(function (e) { return e.staffId === staffId && e.status === 'open'; });
+  }
+
+  // Deterministic avatar tint per staff member (see
+  // docs/ui-integration-decisions.md D7): cycles a 4-color palette by each
+  // person's position in the full staff list, so it's stable across renders
+  // and independent of active/inactive filtering order.
+  function avatarTintIndex(staffId) {
+    var root = BT.state.get();
+    var idx = root.staff.findIndex(function (s) { return s.id === staffId; });
+    if (idx < 0) idx = 0;
+    return (idx % 4) + 1;
+  }
+  function avatarStyle(staffId) {
+    var n = avatarTintIndex(staffId);
+    return 'background:var(--bt-avatar-' + n + '-bg); color:var(--bt-avatar-' + n + '-fg);';
+  }
+  function initials(name) {
+    return String(name || '?').trim().charAt(0).toUpperCase() || '?';
   }
 
   // ---- Clock in / out --------------------------------------------------
@@ -309,14 +339,18 @@
       return;
     }
     body.className = 'bt-nowworking__list';
-    body.innerHTML = openEntries.map(function (e) {
+    var countLabel = openEntries.length === 1 ? '1 PERSON CLOCKED IN RIGHT NOW' : openEntries.length + ' PEOPLE CLOCKED IN RIGHT NOW';
+    var chipsHtml = openEntries.map(function (e) {
       var staff = findStaff(e.staffId);
       var elapsed = BT.time.elapsedMinutesSince(e.date, e.clockIn);
       return '<div class="bt-nowworking__chip">' +
-        '<span class="bt-nowworking__chip-name">' + escapeHtml(staff ? staff.name : '?') + '</span>' +
-        '<span class="bt-nowworking__chip-timer">' + escapeHtml(BT.time.formatElapsed(elapsed)) + '</span>' +
+        '<div class="bt-nowworking__chip-name">' + escapeHtml(staff ? staff.name : '?') + '</div>' +
+        '<div class="bt-nowworking__chip-timer">in for <span>' + escapeHtml(BT.time.formatElapsed(elapsed)) + '</span></div>' +
         '</div>';
     }).join('');
+    body.innerHTML =
+      '<div class="bt-nowworking__title"><span class="bt-nowworking__dot" aria-hidden="true"></span>' + countLabel + '</div>' +
+      '<div class="bt-nowworking__chips">' + chipsHtml + '</div>';
   }
 
   function renderClockGrid() {
@@ -329,18 +363,29 @@
     }
     grid.innerHTML = staffList.map(function (s) {
       var openEntry = openEntryForStaff(s.id);
+      var avatarHtml = '<div class="bt-clockcard__avatar" style="' + avatarStyle(s.id) + '">' + escapeHtml(initials(s.name)) + '</div>';
       if (openEntry) {
         var elapsed = BT.time.elapsedMinutesSince(openEntry.date, openEntry.clockIn);
         return '<div class="bt-clockcard bt-clockcard--active">' +
+          avatarHtml +
+          '<div class="bt-clockcard__top">' +
           '<div class="bt-clockcard__name">' + escapeHtml(s.name) + '</div>' +
-          '<div class="bt-clockcard__status">Clocked in at ' + escapeHtml(openEntry.clockIn) + '</div>' +
-          '<div class="bt-clockcard__timer">' + escapeHtml(BT.time.formatElapsed(elapsed)) + '</div>' +
-          '<button type="button" class="bt-btn bt-btn--success bt-btn--block bt-clock-btn" data-staff="' + s.id + '">Clock out</button>' +
+          '<div class="bt-clockcard__status bt-clockcard__status--live">' +
+          '<span class="bt-nowworking__dot" aria-hidden="true"></span>' +
+          '<span>Clocked in · <span class="bt-clockcard__timer">' + escapeHtml(BT.time.formatElapsed(elapsed)) + '</span></span>' +
+          '</div></div>' +
+          '<button type="button" class="bt-btn bt-btn--success bt-clock-btn" data-staff="' + s.id + '">Clock out</button>' +
           '</div>';
       }
+      var statusText = 'Not clocked in';
+      var lastCompleted = root_lastCompletedFor(s.id);
+      if (lastCompleted) statusText = 'Out · last in ' + escapeHtml(lastCompleted.clockIn);
       return '<div class="bt-clockcard">' +
-        '<div class="bt-clockcard__name">' + escapeHtml(s.name) + '</div>' +
-        '<div class="bt-clockcard__status">Not clocked in</div>' +
+        '<div class="bt-clockcard__top">' +
+        avatarHtml +
+        '<div><div class="bt-clockcard__name">' + escapeHtml(s.name) + '</div>' +
+        '<div class="bt-clockcard__status">' + statusText + '</div></div>' +
+        '</div>' +
         '<button type="button" class="bt-btn bt-btn--primary bt-btn--block bt-clock-btn" data-staff="' + s.id + '">Clock in</button>' +
         '</div>';
     }).join('');
@@ -350,6 +395,17 @@
         handleClockTap(btn.getAttribute('data-staff'));
       });
     });
+  }
+
+  // Most recent completed (clocked-out) entry for a staff member, used for
+  // the "Out · last in HH:MM" secondary status line — display-only, doesn't
+  // affect clock-in/out logic or validation.
+  function root_lastCompletedFor(staffId) {
+    var root = BT.state.get();
+    var completed = root.entries.filter(function (e) { return e.staffId === staffId && e.status === 'complete'; });
+    if (completed.length === 0) return null;
+    completed.sort(function (a, b) { return (b.date + b.clockIn).localeCompare(a.date + a.clockIn); });
+    return completed[0];
   }
 
   // ---- Wizard ------------------------------------------------------
@@ -905,13 +961,17 @@
       return;
     }
     var rows = staffList.map(function (s) {
-      return '<tr><td>' + escapeHtml(s.name) + '</td>' +
-        '<td>' + (weekTotals.byStaffId[s.id] || 0).toFixed(2) + 'h</td>' +
-        '<td>' + (monthTotals.byStaffId[s.id] || 0).toFixed(2) + 'h</td></tr>';
+      var weekH = (weekTotals.byStaffId[s.id] || 0).toFixed(2);
+      var monthH = (monthTotals.byStaffId[s.id] || 0).toFixed(2);
+      return '<div class="bt-summaryrow">' +
+        '<div class="bt-summaryrow__avatar" style="' + avatarStyle(s.id) + '">' + escapeHtml(initials(s.name)) + '</div>' +
+        '<div class="bt-summaryrow__name">' + escapeHtml(s.name) + '</div>' +
+        '<div class="bt-summaryrow__totals">' +
+        '<div class="bt-summaryrow__week">' + weekH + 'h</div>' +
+        '<div class="bt-summaryrow__month">week · ' + monthH + 'h month</div>' +
+        '</div></div>';
     }).join('');
-    host.innerHTML = '<div class="bt-table-wrap"><table class="bt-table">' +
-      '<thead><tr><th>Name</th><th>This week</th><th>This month</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>' +
+    host.innerHTML = '<div class="bt-summaryrows">' + rows + '</div>' +
       '<p class="bt-field__hint">Week: ' + escapeHtml(BT.time.formatDateDMY(week.start)) + '–' + escapeHtml(BT.time.formatDateDMY(week.end)) +
       '. Open (still-clocked-in) shifts aren\'t counted in these totals yet.</p>';
   }
@@ -931,7 +991,7 @@
       '<div class="bt-field"><label for="exportStart">From</label><input type="date" id="exportStart" value="' + month.start + '"></div>' +
       '<div class="bt-field"><label for="exportEnd">To</label><input type="date" id="exportEnd" value="' + month.end + '"></div>' +
       '</div>' +
-      '<button type="button" class="bt-btn bt-btn--primary bt-btn--lg" id="exportBtn">Export to Excel</button>' +
+      '<button type="button" class="bt-export-btn" id="exportBtn"><span aria-hidden="true">📊</span> Export to Excel</button>' +
       '<p class="bt-field__hint" id="exportStatus">Defaults to this month. Downloads a real .xlsx with Hours, Summary, and Audit Log sheets.</p>';
 
     $('#exportBtn').addEventListener('click', function () {
@@ -943,9 +1003,9 @@
       }
       var btn = $('#exportBtn');
       var statusEl = $('#exportStatus');
-      btn.disabled = true; btn.textContent = 'Exporting…';
+      btn.disabled = true; btn.innerHTML = '<span aria-hidden="true">📊</span> Exporting…';
       BT.exportData.exportForRange({ start: start, end: end }).then(function (result) {
-        btn.disabled = false; btn.textContent = 'Export to Excel';
+        btn.disabled = false; btn.innerHTML = '<span aria-hidden="true">📊</span> Export to Excel';
         if (result.usedFallback) {
           statusEl.textContent = "Couldn't reach the Excel service, so this downloaded as CSV files instead — they open fine in Excel.";
           toast('Downloaded as CSV (Excel service unreachable).', null);
@@ -1032,6 +1092,16 @@
       if (!text) return;
       input.value = '';
       handleChatSubmit(text);
+    });
+    // Suggestion chips pre-fill common intents (design: "two example chips
+    // pre-fill common intents") — fills and focuses the input rather than
+    // auto-submitting, so the user still reviews/edits before sending.
+    $all('.bt-chat__suggestion').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var input = $('#chatInput');
+        input.value = chip.getAttribute('data-suggestion') || '';
+        input.focus();
+      });
     });
   }
 
@@ -1284,6 +1354,7 @@
   function render() {
     renderBanners();
     renderWizard();
+    renderGreeting();
     renderNowWorking();
     renderClockGrid();
     renderSettings();

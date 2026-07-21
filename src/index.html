@@ -4,13 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <title>Boba Tiger Hours Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="bt-app" id="app">
 
   <header class="bt-header">
-    <div class="bt-header__title"><span class="bt-logo" aria-hidden="true">🧋</span> Boba Tiger Hours</div>
+    <div class="bt-header__title">
+      <span class="bt-header__badge" aria-hidden="true">BT</span>
+      Boba Tiger Hours
+    </div>
     <div class="bt-header__shop" id="shopNameLabel">Boba Tiger Croydon</div>
   </header>
 
@@ -27,33 +33,44 @@
     <!-- DASHBOARD: who's clocked in + clock cards are the dominant elements -->
     <section class="bt-panel" data-panel="dashboard" data-active="true">
 
-      <div class="bt-nowworking" id="nowWorkingSection">
-        <div class="bt-nowworking__title"><span class="bt-nowworking__dot" aria-hidden="true"></span> Who's working right now</div>
-        <div id="nowWorkingBody" class="bt-nowworking__empty">No one is clocked in.</div>
+      <div class="bt-dashboard-greeting">
+        <div>
+          <div class="bt-dashboard-greeting__hey" id="dashboardGreetingHey">Hey team 👋</div>
+          <div class="bt-dashboard-greeting__date" id="dashboardGreetingDate"></div>
+        </div>
+        <button type="button" class="bt-dashboard-greeting__gear" id="dashboardSettingsGear" aria-label="Settings">⚙️</button>
       </div>
+
+      <div id="nowWorkingBody" class="bt-nowworking__empty">No one is clocked in.</div>
 
       <h2 class="bt-section-title">Tap your name to clock in or out</h2>
       <div class="bt-clockgrid" id="clockGrid"></div>
 
-      <h2 class="bt-section-title">Ask or tell Boba Tiger</h2>
-      <div class="bt-card bt-chat" id="chatSection">
+      <h2 class="bt-section-title">This week &amp; this month</h2>
+      <div id="summarySection"></div>
+
+      <h2 class="bt-section-title">Ask me or just tell me your hours</h2>
+      <div class="bt-chat" id="chatSection">
         <div class="bt-chat__log" id="chatLog"></div>
         <div id="reviewCards"></div>
+        <div class="bt-chat__suggestions" id="chatSuggestions">
+          <button type="button" class="bt-chat__suggestion" data-suggestion="Who worked most this week?">Who worked most this week?</button>
+          <button type="button" class="bt-chat__suggestion" data-suggestion="Add my shift">Add my shift</button>
+        </div>
         <form class="bt-chat__input-row" id="chatForm">
-          <input type="text" id="chatInput" placeholder="e.g. Priya did 11 to 7 with a half hour break" autocomplete="off">
-          <button type="submit" class="bt-btn bt-btn--primary" id="chatSend">Send</button>
+          <input type="text" id="chatInput" placeholder="Maya worked 9 to 5 with a 30 min break…" autocomplete="off">
+          <button type="submit" class="bt-btn bt-btn--primary" id="chatSend" aria-label="Send">➤</button>
         </form>
         <p class="bt-field__hint" id="chatHint">Type in plain English. Nothing saves until you confirm.</p>
       </div>
-
-      <h2 class="bt-section-title">This week &amp; this month</h2>
-      <div class="bt-card" id="summarySection"></div>
 
       <h2 class="bt-section-title">Export</h2>
       <div class="bt-card" id="exportSection"></div>
     </section>
 
-    <!-- ENTRIES -->
+    <!-- ENTRIES: restyled in the "Screen 3 — Entries/History" pass, not
+         this one (see docs/ui-integration-plan.md) — kept as-is for now so
+         this commit stays scoped to the Dashboard. -->
     <section class="bt-panel" data-panel="entries" data-active="false">
       <h2 class="bt-section-title">Add an entry</h2>
       <div class="bt-card" id="manualFormSection"></div>
@@ -69,7 +86,8 @@
       </div>
     </section>
 
-    <!-- HISTORY -->
+    <!-- HISTORY: audit log + chat log (no equivalent design screen —
+         restyled with shared tokens only, see decisions.md D4) -->
     <section class="bt-panel" data-panel="history" data-active="false">
       <h2 class="bt-section-title">Audit log</h2>
       <p class="bt-muted">Every add, edit, and delete — who/what/when, before and after. Read-only.</p>
@@ -90,13 +108,13 @@
 
     <!-- SETTINGS -->
     <section class="bt-panel" data-panel="settings" data-active="false">
-      <h2 class="bt-section-title">AI (Groq) key</h2>
+      <h2 class="bt-section-title">🐯 AI features</h2>
       <div class="bt-card" id="keySettingsSection"></div>
 
-      <h2 class="bt-section-title">Staff</h2>
+      <h2 class="bt-section-title">The team</h2>
       <div class="bt-card" id="staffSettingsSection"></div>
 
-      <h2 class="bt-section-title">Backup</h2>
+      <h2 class="bt-section-title">Keep your data safe</h2>
       <div class="bt-card" id="backupSettingsSection"></div>
 
       <h2 class="bt-section-title">Storage</h2>
