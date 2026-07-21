@@ -650,6 +650,12 @@ table.bt-table tr:hover td { background: var(--bt-amber-tint); }
 .bt-wizard-card { background: var(--bt-cream); border-radius: var(--bt-radius-xl); box-shadow: var(--bt-shadow-lg); border: 1px solid var(--bt-line); max-width: 460px; width: 100%; padding: var(--bt-sp-6); max-height: 88vh; overflow-y: auto; }
 .bt-wizard-step { display: flex; flex-direction: column; gap: var(--bt-sp-3); }
 .bt-wizard-step h3 { font-family: var(--bt-font-display); font-size: 1.4rem; }
+.bt-wizard-welcome__badge {
+  width: 60px; height: 60px; border-radius: 20px; background: var(--bt-amber-gradient);
+  display: flex; align-items: center; justify-content: center; box-shadow: var(--bt-shadow-amber);
+  color: #FFF6EA; font-family: var(--bt-font-display); font-weight: 800; font-size: 1.7rem;
+  letter-spacing: -1px; margin-bottom: 4px;
+}
 .bt-wizard-progress { display: flex; gap: 6px; margin-bottom: var(--bt-sp-4); }
 .bt-wizard-progress__dot { flex: 1; height: 6px; border-radius: 3px; background: var(--bt-line); }
 .bt-wizard-progress__dot--done { background: var(--bt-amber); }

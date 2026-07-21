@@ -68,7 +68,12 @@ Method: headless-Chrome/CDP click-through; the key-save path used a mocked `fetc
 
 ## Wizard restyle
 
-_pending_
+The wizard overlay/card already inherited the shared design tokens from the Screen 1 pass (`.bt-wizard-card` uses the new `--bt-radius-xl`/`--bt-shadow-lg`/`--bt-cream`, `.bt-field`/`.bt-btn` are the same restyled controls used everywhere else) — this pass only adds a small BT badge to the welcome step so its branding matches the header, per docs/ui-integration-decisions.md D2 (no design screen exists for the wizard; kept the existing 3-step structure, restyled visually only).
+
+- ✅ Fresh load still shows the wizard (re-ran the Screen 1 wizard test suite after this change)
+- ✅ Welcome → key → staff → finish flow intact, resume-after-refresh intact
+- ✅ Welcome/key/staff steps visually consistent with the rest of the restyled app (warm palette, Baloo 2 headings, restyled buttons/fields)
+- ✅ No console errors
 
 ## Final full-pass re-test
 

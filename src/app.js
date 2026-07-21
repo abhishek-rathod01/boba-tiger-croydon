@@ -439,7 +439,8 @@
   function wizardWelcomeHtml() {
     return wizardProgressHtml(0) +
       '<div class="bt-wizard-step">' +
-      '<h3 id="wizardTitle">🧋 Welcome to Boba Tiger Hours Tracker</h3>' +
+      '<div class="bt-wizard-welcome__badge" aria-hidden="true">BT</div>' +
+      '<h3 id="wizardTitle">Welcome to Boba Tiger Hours Tracker</h3>' +
       '<p>This little app helps track staff hours — clocking in and out, or just typing things in plain English.</p>' +
       '<p class="bt-muted">Everything stays on this device. Nothing is sent anywhere except, optionally, to an AI helper you control.</p>' +
       '<button type="button" class="bt-btn bt-btn--primary bt-btn--lg bt-btn--block" id="wizardNext">Let\'s get started</button>' +
