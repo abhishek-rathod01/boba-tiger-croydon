@@ -545,6 +545,20 @@
   function root_model() { return BT.state.get().settings.model; }
 
   // ---- Settings tab ----------------------------------------------------
+  // "Sunday 19 July, 8:14pm" — used for the last-backup line only (display
+  // formatting; does not affect the stored ISO timestamp or the 30-day
+  // reminder-banner logic in renderBanners, which uses daysBetweenISO).
+  function formatFriendlyTimestamp(iso) {
+    if (!iso) return null;
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return null;
+    var p = BT.time.londonParts(d);
+    var h12 = p.hour % 12 === 0 ? 12 : p.hour % 12;
+    var ampm = p.hour < 12 ? 'am' : 'pm';
+    var mm = p.minute < 10 ? '0' + p.minute : p.minute;
+    return WEEKDAY_FULL[p.weekday] + ' ' + p.day + ' ' + MONTH_FULL[p.month - 1] + ', ' + h12 + ':' + mm + ampm;
+  }
+
   function maskKey(key) {
     if (!key) return '';
     if (key.length <= 8) return key;
@@ -557,20 +571,24 @@
     var hasKey = !!root.settings.groqApiKey;
     var html = '';
     if (hasKey) {
-      html += '<p>Current key: <strong>' + escapeHtml(maskKey(root.settings.groqApiKey)) + '</strong></p>';
+      html += '<div class="bt-ai-banner bt-ai-banner--active"><span class="bt-ai-banner__icon" aria-hidden="true">🐯</span>' +
+        '<div><div class="bt-ai-banner__title">Your AI helper is on</div>' +
+        '<div class="bt-ai-banner__desc">Current key: <strong>' + escapeHtml(maskKey(root.settings.groqApiKey)) + '</strong>. Type hours in plain English or ask questions anytime.</div></div></div>';
     } else {
-      html += '<p class="bt-muted">No key saved — AI features are off. The app works fully without one.</p>';
+      html += '<div class="bt-ai-banner"><span class="bt-ai-banner__icon" aria-hidden="true">💤</span>' +
+        '<div><div class="bt-ai-banner__title">Your AI helper is resting</div>' +
+        '<div class="bt-ai-banner__desc">Add a key below and you\'ll be able to type hours in plain English and ask questions. Everything else works fine without it.</div></div></div>';
     }
     html += '<div class="bt-field"><label for="settingsKeyInput">Groq API key</label>' +
-      '<input type="text" id="settingsKeyInput" placeholder="gsk_..." value="">' +
-      '<span class="bt-field__hint">Your key is saved only on this device.</span></div>';
-    html += '<div class="bt-field"><label for="settingsModelInput">Model</label>' +
+      '<div class="bt-input-icon-row"><span class="bt-input-icon-row__icon" aria-hidden="true">🔑</span>' +
+      '<input type="text" id="settingsKeyInput" placeholder="Paste your key here…" value=""></div></div>' +
+      '<div class="bt-ai-reassurance"><span aria-hidden="true">🔒</span> Saved only on this device — it never leaves the shop.</div>';
+    html += '<div class="bt-field" style="margin-top: var(--bt-sp-4);"><label for="settingsModelInput">Model</label>' +
       '<input type="text" id="settingsModelInput" value="' + escapeHtml(root.settings.model) + '">' +
       '<span class="bt-field__hint">Only change this if told to by an error message.</span></div>';
-    html += '<div class="bt-row">' +
-      '<button type="button" class="bt-btn bt-btn--primary" id="settingsSaveKey">Save key</button>' +
-      (hasKey ? '<button type="button" class="bt-btn bt-btn--danger" id="settingsRemoveKey">Remove key</button>' : '') +
-      '</div>';
+    html += '<button type="button" class="bt-btn bt-btn--primary bt-btn--block" id="settingsSaveKey" style="margin-top: var(--bt-sp-2);">' +
+      (hasKey ? 'Save key' : 'Turn on AI features') + '</button>';
+    if (hasKey) html += '<button type="button" class="bt-btn bt-btn--ghost bt-btn--block" id="settingsRemoveKey" style="margin-top: var(--bt-sp-2);">Remove key</button>';
     host.innerHTML = html;
 
     $('#settingsSaveKey').addEventListener('click', function () {
@@ -600,24 +618,35 @@
     var root = BT.state.get();
     var host = $('#staffSettingsSection');
     var rows = root.staff.map(function (s) {
-      return '<div class="bt-row bt-spread" style="padding:8px 0; border-top:1px solid var(--bt-line);">' +
-        '<span>' + escapeHtml(s.name) + (s.active === false ? ' <span class="bt-muted">(inactive)</span>' : '') + '</span>' +
-        '<button type="button" class="bt-btn bt-btn--secondary bt-staff-toggle" data-id="' + s.id + '">' +
-        (s.active === false ? 'Reactivate' : 'Deactivate') + '</button>' +
-        '</div>';
+      var inactive = s.active === false;
+      var avatarHtml = '<div class="bt-team-row__avatar" style="' + avatarStyle(s.id) + '">' + escapeHtml(initials(s.name)) + '</div>';
+      var nameHtml = '<div class="bt-team-row__name">' + escapeHtml(s.name) + (inactive ? ' <span class="bt-muted">(inactive)</span>' : '') + '</div>';
+      var actionHtml = inactive
+        ? '<button type="button" class="bt-team-row__reactivate bt-staff-toggle" data-id="' + s.id + '">Reactivate</button>'
+        : '<button type="button" class="bt-team-row__remove bt-staff-toggle" data-id="' + s.id + '" aria-label="Remove ' + escapeHtml(s.name) + '" title="Deactivate — history is kept">✕</button>';
+      return '<div class="bt-team-row">' + avatarHtml + nameHtml + actionHtml + '</div>';
     }).join('');
     host.innerHTML =
-      '<div class="bt-row"><input type="text" id="settingsStaffInput" placeholder="e.g. Priya" style="flex:1;">' +
-      '<button type="button" class="bt-btn bt-btn--primary" id="settingsAddStaff">Add</button></div>' +
       '<p class="bt-field__hint">Staff with saved hours are never deleted — deactivate them instead so their history stays intact.</p>' +
-      rows;
+      rows +
+      '<button type="button" class="bt-team-add-btn" id="settingsAddStaff"><span aria-hidden="true">+</span> Add a team member</button>';
 
     $('#settingsAddStaff').addEventListener('click', function () {
-      var input = $('#settingsStaffInput');
-      var name = input.value.trim();
-      if (!name) return;
-      BT.state.update(function (r) { r.staff.push({ id: BT.state.uid('s'), name: name, active: true, hourlyRate: null }); });
-      toast(name + ' added.', 'success');
+      showModal({
+        title: 'Add a team member',
+        fields: [{ id: 'name', label: 'Name', type: 'text' }],
+        buttons: [
+          { label: 'Cancel', variant: 'ghost' },
+          {
+            label: 'Add', variant: 'primary', onClick: function (values) {
+              var name = (values.name || '').trim();
+              if (!name) return;
+              BT.state.update(function (r) { r.staff.push({ id: BT.state.uid('s'), name: name, active: true, hourlyRate: null }); });
+              toast(name + ' added.', 'success');
+            }
+          }
+        ]
+      });
     });
     $all('.bt-staff-toggle', host).forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -632,11 +661,13 @@
 
   function renderBackupSettings() {
     var host = $('#backupSettingsSection');
+    var root = BT.state.get();
+    var lastBackup = root.meta && root.meta.lastBackupAt ? formatFriendlyTimestamp(root.meta.lastBackupAt) : null;
     host.innerHTML =
-      '<p class="bt-muted">Keep a copy of your data somewhere safe. Restoring replaces everything currently in the app.</p>' +
-      '<div class="bt-row">' +
-      '<button type="button" class="bt-btn bt-btn--primary" id="settingsDownloadBackup">Download backup</button>' +
-      '<label class="bt-btn bt-btn--secondary" for="settingsRestoreFile" style="cursor:pointer;">Restore from backup</label>' +
+      '<div class="bt-backup-lastline">' + (lastBackup ? 'Last backup: ' + escapeHtml(lastBackup) : 'No backup taken yet.') + '</div>' +
+      '<div class="bt-backup-actions">' +
+      '<button type="button" class="bt-btn bt-btn--success" id="settingsDownloadBackup">↓ Back up now</button>' +
+      '<label class="bt-btn bt-btn--secondary" for="settingsRestoreFile" style="cursor:pointer;">↑ Restore</label>' +
       '<input type="file" id="settingsRestoreFile" accept="application/json" class="bt-visually-hidden">' +
       '</div>';
     $('#settingsDownloadBackup').addEventListener('click', function () {

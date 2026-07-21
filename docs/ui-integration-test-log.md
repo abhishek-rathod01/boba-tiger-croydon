@@ -53,7 +53,18 @@ Method: headless-Chrome/CDP click-through against seeded entries (open + complet
 
 ## Screen 4 — Settings
 
-_pending_
+Method: headless-Chrome/CDP click-through; the key-save path used a mocked `fetch` (see Screen 2 note) so `validateKey`'s real request/response handling is exercised without a live key or network call.
+
+- ✅ No-key state shows the calm "💤 Your AI helper is resting" banner (not an error), matching the design's copy verbatim, with the reassurance line and "Turn on AI features" button
+- ✅ Saving a key flips to the "🐯 Your AI helper is on" success-tinted banner showing the masked key, button relabels to "Save key", a "Remove key" option appears
+- ✅ Removing a key reverts to the resting state — `settings.groqApiKey` confirmed empty via state inspection, not just visually
+- ✅ Team card: red ✕ deactivates (not hard-delete, per FR8/system-design.md "never hard-delete staff who have entries") — confirmed `staff.active` flips to `false`, row switches to a "Reactivate" pill
+- ✅ Reactivate flips `active` back to `true` and restores the ✕ affordance
+- ✅ "+ Add a team member" opens the existing custom modal (not a native prompt), adds the new person — confirmed in state, toast shown
+- ✅ Backup card shows "Last backup: Sunday 19 July, 8:14pm" formatted from the seeded ISO timestamp, matching the design's exact example string
+- ✅ "↓ Back up now" triggers the download and updates `meta.lastBackupAt` (confirmed via state; the actual file save isn't observable in headless Chrome without a download handler, unchanged from before — export/backup file-writing logic itself was not touched)
+- ✅ Storage indicator (kept per docs/ui-integration-decisions.md D6) renders the KB-used figure
+- ✅ No console errors across the full settings interaction set
 
 ## Wizard restyle
 
