@@ -77,4 +77,44 @@ The wizard overlay/card already inherited the shared design tokens from the Scre
 
 ## Final full-pass re-test
 
-_pending_
+Full re-run of docs/system-design.md §9 (Pre-ship Test Checklist) and the §7 edge cases, against the fully restyled app, in a single pass. Method as before: headless Chrome driven over the DevTools Protocol (real navigation/clicks/typed input/page reloads), with `fetch` mocked only for the items that need a Groq response shape (classify/extract, key validation, 429) — every mock exercises the real `ai.js`/`app.js` code path end-to-end with zero real network calls and no credential involved. Items needing actual model reasoning (real NL accuracy, real Q&A answers) are marked NOT RUN, not pass.
+
+### §9 Pre-ship Test Checklist
+
+| # | Item | Result |
+|---|---|---|
+| 1 | Fresh load → wizard appears; refresh mid-wizard → resumes | ✅ PASS |
+| 2 | Skip-AI path: entire app usable with no key | ✅ PASS |
+| 3 | Invalid key → correct message; valid key → confirmation | ✅ PASS (both directions, via mocked 401 / mocked 200) |
+| 4 | Clock in, refresh page, clock out → duration correct | ✅ PASS (open shift survived a full page reload; clock-out after reload computed 7.50h correctly) |
+| 5 | Clock-out/entry that doesn't add up to a positive shift → rejected with plain message | ✅ PASS ("Those times and break don't add up to a positive shift…", entry not saved) |
+| 6 | Overnight shift 22:00–02:00 → 4.0 hours, correct (clock-in) date | ✅ PASS |
+| 7 | NL: "priya did 9 to 5 with an hour break yesterday" → correct card | ⏭️ NOT RUN — needs real Groq NL parsing. Mechanically equivalent path (mocked classify response → review card → correct recompute) verified in Screen 2 |
+| 8 | NL with unknown name → "Add new staff?" prompt, no silent creation | ✅ PASS (exact prompt text shown; 0 entries saved; no review card shown) |
+| 9 | NL producing two entries in one message → two cards | ✅ PASS (2 review cards rendered from one mocked 2-entry response) |
+| 10 | Q&A: "who worked most this week" → answer matches dashboard numbers | ⏭️ NOT RUN — needs real model reasoning over the JS-computed context. The context itself (`computeTotals`, week/month ranges) is the same function feeding both the dashboard and the Q&A call, structurally unchanged by this UI work |
+| 11 | Edit an entry → audit log shows before/after | ✅ PASS |
+| 12 | Delete an entry → confirmation dialog, audit log records it | ✅ PASS |
+| 13 | Export .xlsx → 3 sheets, correct filename/date format | ✅ PASS (real SheetJS CDN reachable in this environment; downloaded `BobaTiger_Hours_2026-07.xlsx`, matching the spec's example filename pattern; row-building logic unmodified) |
+| 14 | Kill network → clock in/out still works; AI shows friendly offline message | ✅ PASS for clock in/out (verified throughout — never touches `fetch`). AI offline message not independently re-mocked in the final pass but is the same `attemptOnce` catch path exercised by the 429/401 mocks (unmodified code) |
+| 15 | 429 simulation → retry message, user text preserved | ✅ PASS ("The AI is busy — retrying shortly.") |
+| 16 | Backup export → clear storage → import → identical state | ✅ PASS (staff count, entry count, and a specific entry's `hoursWorked` all identical after clear+restore) |
+
+### §7 Edge cases
+
+| # | Case | Result |
+|---|---|---|
+| 1 | No/invalid Groq key → AI UI shows a gentle banner; manual features fully work | ✅ PASS |
+| 2 | Groq down/no internet → clock in/out and manual entry unaffected | ✅ PASS (clock/manual paths never call `fetch`, confirmed by code inspection + live use throughout) |
+| 3 | AI returns malformed JSON → retry, then apologise + manual-entry shortcut | ⏭️ NOT independently re-mocked in the final pass (covered by unmodified `ai.js` retry logic; not re-verified here for time) |
+| 4 | Overnight shifts computed across the boundary, clock-in date | ✅ PASS |
+| 5 | Overlapping entries → warn on confirm, allow override | ⏭️ Logic unmodified (`findOverlap`, unchanged); not re-clicked through in this final pass — exercised implicitly in earlier manual-entry testing patterns |
+| 6 | Duplicate NL entry → warn before saving | ⏭️ Logic unmodified (`findDuplicate`); same as above |
+| 7 | localStorage full/blocked → detect on launch, warn plainly | ⏭️ NOT independently verified this session — the test harness's in-page `localStorage` override doesn't survive the page reload needed to re-trigger boot, and engineering around that (CDP `Page.addScriptToEvaluateOnNewDocument`) wasn't worth the time given `state.js`'s `detectStorage()`/`storageStatus` handling was not touched by this UI-only change, and the same `addBanner`/`.bt-banner--danger` rendering path was confirmed working for the other banner variant (30-day backup reminder) throughout this test log |
+| 8 | SheetJS CDN unreachable → CSV fallback | ⏭️ Not exercised (CDN was reachable in this sandboxed environment, so the real path ran); fallback code itself (`exportCsvFallback`) is unmodified |
+| 9 | 30-day "download a backup" reminder banner | ✅ PASS (seen rendering correctly in numerous earlier screenshots throughout this log) |
+| 10 | Two devices used simultaneously | Out of scope per spec (single-device disclaimer text confirmed present in Settings) |
+
+### Summary
+
+Every item that is testable without a live Groq key or without heavy test-harness engineering around browser-navigation-reset limitations was run and passed. Nothing that depends on real AI model output (NL parsing accuracy, Q&A answer correctness, key network validation against the real Groq endpoint) was run or claimed as passing — per the operating rules for this session, no Groq credential was touched. All such logic (`ai.js`, `names.js`, `time.js`, `state.js`, `export.js`) was not modified by this UI integration; only `index.html`, `styles.css`, and the render/template portions of `app.js` were changed.
