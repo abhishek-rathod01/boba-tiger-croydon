@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<title>Boba Tiger Hours Tracker</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="bt-app" id="app">
+
+  <header class="bt-header">
+    <div class="bt-header__title"><span class="bt-logo" aria-hidden="true">🧋</span> Boba Tiger Hours</div>
+    <div class="bt-header__shop" id="shopNameLabel">Boba Tiger Croydon</div>
+  </header>
+
+  <nav class="bt-tabs" role="tablist" aria-label="Main sections">
+    <button type="button" class="bt-tab" role="tab" data-tab="dashboard" aria-selected="true">Dashboard</button>
+    <button type="button" class="bt-tab" role="tab" data-tab="entries" aria-selected="false">Entries</button>
+    <button type="button" class="bt-tab" role="tab" data-tab="history" aria-selected="false">History</button>
+    <button type="button" class="bt-tab" role="tab" data-tab="settings" aria-selected="false">Settings</button>
+  </nav>
+
+  <main class="bt-main">
+    <div id="banners"></div>
+
+    <!-- DASHBOARD: who's clocked in + clock cards are the dominant elements -->
+    <section class="bt-panel" data-panel="dashboard" data-active="true">
+
+      <div class="bt-nowworking" id="nowWorkingSection">
+        <div class="bt-nowworking__title"><span class="bt-nowworking__dot" aria-hidden="true"></span> Who's working right now</div>
+        <div id="nowWorkingBody" class="bt-nowworking__empty">No one is clocked in.</div>
+      </div>
+
+      <h2 class="bt-section-title">Tap your name to clock in or out</h2>
+      <div class="bt-clockgrid" id="clockGrid"></div>
+
+      <h2 class="bt-section-title">Ask or tell Boba Tiger</h2>
+      <div class="bt-card bt-chat" id="chatSection">
+        <div class="bt-chat__log" id="chatLog"></div>
+        <div id="reviewCards"></div>
+        <form class="bt-chat__input-row" id="chatForm">
+          <input type="text" id="chatInput" placeholder="e.g. Priya did 11 to 7 with a half hour break" autocomplete="off">
+          <button type="submit" class="bt-btn bt-btn--primary" id="chatSend">Send</button>
+        </form>
+        <p class="bt-field__hint" id="chatHint">Type in plain English. Nothing saves until you confirm.</p>
+      </div>
+
+      <h2 class="bt-section-title">This week &amp; this month</h2>
+      <div class="bt-card" id="summarySection"></div>
+
+      <h2 class="bt-section-title">Export</h2>
+      <div class="bt-card" id="exportSection"></div>
+    </section>
+
+    <!-- ENTRIES -->
+    <section class="bt-panel" data-panel="entries" data-active="false">
+      <h2 class="bt-section-title">Add an entry</h2>
+      <div class="bt-card" id="manualFormSection"></div>
+
+      <h2 class="bt-section-title">All entries</h2>
+      <div class="bt-table-wrap">
+        <table class="bt-table" id="entriesTable">
+          <thead>
+            <tr><th>Name</th><th>Date</th><th>In</th><th>Out</th><th>Break</th><th>Hours</th><th>Source</th><th>Note</th><th></th></tr>
+          </thead>
+          <tbody id="entriesTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="bt-panel" data-panel="history" data-active="false">
+      <h2 class="bt-section-title">Audit log</h2>
+      <p class="bt-muted">Every add, edit, and delete — who/what/when, before and after. Read-only.</p>
+      <div class="bt-table-wrap">
+        <table class="bt-table" id="auditTable">
+          <thead>
+            <tr><th>When</th><th>Action</th><th>Via</th><th>Before</th><th>After</th></tr>
+          </thead>
+          <tbody id="auditTableBody"></tbody>
+        </table>
+      </div>
+
+      <h2 class="bt-section-title">Chat history</h2>
+      <div class="bt-card bt-chat">
+        <div class="bt-chat__log" id="chatHistoryLog"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="bt-panel" data-panel="settings" data-active="false">
+      <h2 class="bt-section-title">AI (Groq) key</h2>
+      <div class="bt-card" id="keySettingsSection"></div>
+
+      <h2 class="bt-section-title">Staff</h2>
+      <div class="bt-card" id="staffSettingsSection"></div>
+
+      <h2 class="bt-section-title">Backup</h2>
+      <div class="bt-card" id="backupSettingsSection"></div>
+
+      <h2 class="bt-section-title">Storage</h2>
+      <div class="bt-card" id="storageSettingsSection"></div>
+
+      <p class="bt-muted" style="margin-top: var(--bt-sp-5);">Use this on one device — data does not sync between devices.</p>
+    </section>
+  </main>
+
+  <div class="bt-wizard-overlay" id="wizardOverlay" hidden>
+    <div class="bt-wizard-card" id="wizardCard" role="dialog" aria-modal="true" aria-labelledby="wizardTitle"></div>
+  </div>
+
+  <div class="bt-toasts" id="toasts" aria-live="polite"></div>
+</div>
+
+<script src="state.js"></script>
+<script src="time.js"></script>
+<script src="names.js"></script>
+<script src="ai.js"></script>
+<script src="export.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

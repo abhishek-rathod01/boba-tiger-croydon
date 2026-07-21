@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.log
+.env
+dist/
+*.local
+
+# Never commit real exported data or API keys
+exports/*.xlsx
+exports/*.json
+!exports/.gitkeep
