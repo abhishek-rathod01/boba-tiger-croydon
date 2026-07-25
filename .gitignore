@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.local
 
+# Electron build output — never commit built installers
+release/
+
 # Never commit real exported data or API keys
 exports/*.xlsx
 exports/*.json

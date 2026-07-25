@@ -1,0 +1,58 @@
+{
+  "name": "boba-tiger-hours-tracker",
+  "version": "1.0.0",
+  "description": "Boba Tiger Croydon - staff hours tracker (Electron desktop app)",
+  "main": "main.js",
+  "author": "Boba Tiger Croydon",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never",
+    "release": "electron-builder --win --publish always"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^26.15.7"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "build": {
+    "appId": "com.bobatigercroydon.hourstracker",
+    "productName": "Boba Tiger Hours Tracker",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "!exports/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Boba Tiger Hours"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "REPLACE_WITH_YOUR_GITHUB_USERNAME",
+      "repo": "boba-tiger-hours-tracker"
+    }
+  }
+}
